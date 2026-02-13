@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hello, Troi 🔮</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0a0a2e 0%, #1a1045 40%, #2d1b69 70%, #0a0a2e 100%);
+      color: #e0d4f5;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      overflow: hidden;
+    }
+
+    .container {
+      text-align: center;
+      max-width: 600px;
+      padding: 2rem;
+      animation: fadeIn 1.2s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .orb {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 2rem;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #c084fc, #7c3aed 50%, #4c1d95);
+      box-shadow: 0 0 40px rgba(168, 85, 247, 0.4), 0 0 80px rgba(168, 85, 247, 0.15);
+      animation: pulse 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 40px rgba(168, 85, 247, 0.4), 0 0 80px rgba(168, 85, 247, 0.15); }
+      50% { box-shadow: 0 0 60px rgba(168, 85, 247, 0.6), 0 0 120px rgba(168, 85, 247, 0.25); }
+    }
+
+    h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      color: #f5f0ff;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      font-size: 1.15rem;
+      color: #a78bfa;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+
+    .description {
+      font-size: 1.05rem;
+      line-height: 1.7;
+      color: #c4b5d4;
+      max-width: 460px;
+      margin: 0 auto;
+    }
+
+    .starfield {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .starfield span {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: white;
+      border-radius: 50%;
+      opacity: 0;
+      animation: twinkle 4s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="starfield" id="stars"></div>
+  <div class="container">
+    <div class="orb"></div>
+    <h1>Hello, Troi 🔮</h1>
+    <p class="subtitle">Empathisch. Analytisch. Beraterisch.</p>
+    <p class="description">Triage Agent der Enterprise Crew — analysiert komplexe Aufgaben und erstellt Execution Plans.</p>
+  </div>
+  <script>
+    const sf = document.getElementById('stars');
+    for (let i = 0; i < 60; i++) {
+      const s = document.createElement('span');
+      s.style.left = Math.random() * 100 + '%';
+      s.style.top = Math.random() * 100 + '%';
+      s.style.animationDelay = Math.random() * 4 + 's';
+      s.style.animationDuration = (3 + Math.random() * 3) + 's';
+      sf.appendChild(s);
+    }
+  </script>
+  <style>
+    @keyframes twinkle {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 0.8; }
+    }
+  </style>
+</body>
+</html>

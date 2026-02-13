@@ -1,0 +1,85 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preflight (required secrets)
+        shell: bash
+        env:
+          DEPLOY_APP_NAME: ${{ secrets.DEPLOY_APP_NAME }}
+          DEPLOY_SERVER_HOST: ${{ secrets.DEPLOY_SERVER_HOST }}
+          DEPLOY_SERVER_USER: ${{ secrets.DEPLOY_SERVER_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          for v in DEPLOY_APP_NAME DEPLOY_SERVER_HOST DEPLOY_SERVER_USER DEPLOY_SSH_KEY; do
+            if [ -z "${!v:-}" ]; then
+              echo "::error title=Missing required secret::$v is empty or not set"
+              exit 1
+            fi
+          done
+
+      - name: Setup SSH
+        shell: bash
+        env:
+          DEPLOY_SERVER_HOST: ${{ secrets.DEPLOY_SERVER_HOST }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf "%s\n" "$DEPLOY_SSH_KEY" | tr -d "\r" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$DEPLOY_SERVER_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Sync code to server
+        shell: bash
+        env:
+          DEPLOY_APP_NAME: ${{ secrets.DEPLOY_APP_NAME }}
+          DEPLOY_SERVER_HOST: ${{ secrets.DEPLOY_SERVER_HOST }}
+          DEPLOY_SERVER_USER: ${{ secrets.DEPLOY_SERVER_USER }}
+        run: |
+          set -euo pipefail
+          HOST="$DEPLOY_SERVER_USER@$DEPLOY_SERVER_HOST"
+          SSH="ssh -o StrictHostKeyChecking=yes -i ~/.ssh/deploy_key"
+          $SSH "$HOST" "mkdir -p /apps/$DEPLOY_APP_NAME"
+          rsync -avz --delete --exclude '.git' \
+            -e "ssh -o StrictHostKeyChecking=yes -i ~/.ssh/deploy_key" \
+            ./ "$HOST:/apps/$DEPLOY_APP_NAME/"
+
+      - name: Build and deploy
+        shell: bash
+        env:
+          DEPLOY_APP_NAME: ${{ secrets.DEPLOY_APP_NAME }}
+          DEPLOY_SERVER_HOST: ${{ secrets.DEPLOY_SERVER_HOST }}
+          DEPLOY_SERVER_USER: ${{ secrets.DEPLOY_SERVER_USER }}
+        run: |
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=yes -i ~/.ssh/deploy_key \
+            "$DEPLOY_SERVER_USER@$DEPLOY_SERVER_HOST" \
+            "cd /apps/$DEPLOY_APP_NAME && docker compose build && docker compose up -d && sleep 3 && docker compose ps"
+
+      - name: Health check
+        shell: bash
+        env:
+          DEPLOY_APP_NAME: ${{ secrets.DEPLOY_APP_NAME }}
+          DEPLOY_SERVER_HOST: ${{ secrets.DEPLOY_SERVER_HOST }}
+          DEPLOY_SERVER_USER: ${{ secrets.DEPLOY_SERVER_USER }}
+        run: |
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=yes -i ~/.ssh/deploy_key \
+            "$DEPLOY_SERVER_USER@$DEPLOY_SERVER_HOST" \
+            "cd /apps/$DEPLOY_APP_NAME && docker compose ps | grep -q 'Up' && echo 'Deployment healthy' || (echo 'Health check failed'; exit 1)"

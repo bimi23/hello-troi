@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    networks:
+      - web
+    labels:
+      caddy: hello-troi.dev.kermin.de
+      caddy.reverse_proxy: "{{upstreams 80}}"
+
+networks:
+  web:
+    external: true
